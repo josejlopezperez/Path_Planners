@@ -13,21 +13,21 @@ def KeyboardEvent(event):
     global map, occGrid
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_RIGHT:
-            map.NextMap(map.mapID + 1)
+            map = MapReader(map.mapID + 1)
             occGrid = OccupancyGrid(map, (0.5, 0.5))
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            glOrtho(map.MinX, map.MaxX, map.MinY, map.MaxY, -1, 1)
+            glOrtho(map.MinPoint.x, map.MaxPoint.x, map.MinPoint.y, map.MaxPoint.y, -1, 1)
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         if event.key == pygame.K_LEFT:
-            map.NextMap(map.mapID - 1)
+            map = MapReader(map.mapID - 1)
             occGrid = OccupancyGrid(map, (0.5, 0.5))
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            glOrtho(map.MinX, map.MaxX, map.MinY, map.MaxY, -1, 1)
+            glOrtho(map.MinPoint.x, map.MaxPoint.x, map.MinPoint.y, map.MaxPoint.y, -1, 1)
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
             glEnable(GL_BLEND)
@@ -40,10 +40,10 @@ def KeyboardEvent(event):
 
 if __name__ == '__main__':
     pygame.init()
-    screen = pygame.display.set_mode((800,800), DOUBLEBUF|OPENGL)
+    screen = pygame.display.set_mode((1000,1000), DOUBLEBUF|OPENGL)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    glOrtho(map.MinX, map.MaxX, map.MinY, map.MaxY, -1, 1)
+    glOrtho(map.MinPoint.x, map.MaxPoint.x, map.MinPoint.y, map.MaxPoint.y, -1, 1)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
     glEnable(GL_BLEND)

@@ -1,4 +1,5 @@
 from OpenGL.GL import *
+from Tools.Points import Point3D
 
 class Cell():
     def __init__(self, *args):
@@ -13,68 +14,57 @@ class Cell():
         
     def IsInsideObstacle(self, obstacle):
         hInters = 0
-        vInters = 0
-        point1 = [min([vertex[0] for vertex in obstacle]), min([vertex[1] for vertex in obstacle])]
-        point2 = [max([vertex[0] for vertex in obstacle]), max([vertex[1] for vertex in obstacle])]
-        if not (point1[1] <= self.point[1] <= point2[1]) and not (point1[0] <= self.point[0] <= point2[0]): return False
+        point1 = Point3D(min([vertex.x for vertex in obstacle]), min([vertex.y for vertex in obstacle]), 0.0)
+        point2 = Point3D(max([vertex.x for vertex in obstacle]), max([vertex.y for vertex in obstacle]), 0.0)
+        if not ((point1.y <= self.point.y <= point2.y) and (point1.x <= self.point.x <= point2.x)): return False
         for i in range(len(obstacle)):
-            point1 = obstacle[i]
-            point2 = obstacle[(i + 1) if (i + 1) < len(obstacle) else 0]
-            if not (min([point1[1],point2[1]]) <= self.point[1] <= max([point1[1],point2[1]])) and \
-               not (min([point1[0],point2[0]]) <= self.point[0] <= max([point1[0],point2[0]])): continue 
-            if point2[0] == point1[0]:
-                if (point1[1] < self.point[1] <= point2[1] or point2[1] < self.point[1] <= point1[1]) and point2[0] > self.point[0]: hInters += 1
-            elif point2[1] == point1[1]:
-                if (point1[0] < self.point[0] <= point2[0] or point2[0] < self.point[0] <= point1[0]) and point2[1] > self.point[1]: vInters += 1
-            else:
-                y = point1[1] + ((point2[1] - point1[1])/(point2[0] - point1[0]))*(self.point[0] - point1[0])
-                if (point1[1] < y <= point2[1] or point2[1] < y <= point1[1]) and y > self.point[1]: vInters += 1
-                x = point1[0] + ((point2[0] - point1[0])/(point2[1] - point1[1]))*(self.point[1] - point1[1])
-                if (point1[0] < x <= point2[0] or point2[0] < x <= point1[0]) and x > self.point[0]: hInters += 1
-        return False if (vInters % 2) == 0 and (hInters % 2) == 0 else True
+            point1 = Point3D(obstacle[i]) 
+            point2 = Point3D(obstacle[(i + 1) if (i + 1) < len(obstacle) else 0])
+            if point2.x == point1.x:
+                if (min([point1.y, point2.y]) < self.point.y <= max([point1.y, point2.y])) and point2.x > self.point.x: hInters += 1
+            elif point2.y != point1.y:
+                x = point1.x + ((point2.x - point1.x)/(point2.y - point1.y))*(self.point.y - point1.y)
+                if (min([point1.x, point2.x]) < x <= max([point1.x, point2.x])) and x > self.point.x: hInters += 1
+        return (hInters % 2) != 0
     
     def Draw(self, color, delta):
         glBegin(GL_QUADS)
         glColor3fv(color)
-        glVertex3f(self.point[0] + delta, self.point[1] + delta, 0.0)
-        glVertex3f(self.point[0] - delta, self.point[1] + delta, 0.0)
-        glVertex3f(self.point[0] - delta, self.point[1] - delta, 0.0)
-        glVertex3f(self.point[0] + delta, self.point[1] - delta, 0.0)
+        glVertex3f(self.point.x + delta, self.point.y + delta, 0.0)
+        glVertex3f(self.point.x - delta, self.point.y + delta, 0.0)
+        glVertex3f(self.point.x - delta, self.point.y - delta, 0.0)
+        glVertex3f(self.point.x + delta, self.point.y - delta, 0.0)
         glEnd()
 
 class OccupancyGrid():
     def __init__(self, *args):
         map = args[0]
-        self.__minPoint = (map.MinX, map.MinY)
-        self.__maxPoint = (map.MaxX, map.MaxY)
+        self.__minPoint = map.MinPoint
+        self.__maxPoint = map.MaxPoint
         self.__cells = []
         self.__startID = 0
         self.__goalID = 0
-        self.__delta = args[1]
+        self.__delta = Point3D(args[1][0], args[1][1], 0.0)
         self.__solution = []
         self.__visited = []
         self.__possible = []
-        self.__nCols = int((self.__maxPoint[0] - self.__minPoint[0])/self.__delta[0])
-        point = [self.__minPoint[0] + self.__delta[0]/2,
-                 self.__minPoint[1] + self.__delta[1]/2]
-        cellID = 0
-        while(point[1] <= (self.__maxPoint[1] - self.__delta[1]/2)):
-            while(point[0] <= (self.__maxPoint[0] - self.__delta[0]/2)):
-                self.__cells.append(Cell(cellID, (point[0], point[1])))
-                cellID += 1
-                point[0] += self.__delta[0]
-            point = [self.__minPoint[0] + self.__delta[0]/2,
-                     point[1] + self.__delta[1]]
+        self.__nCols = int((self.__maxPoint.x - self.__minPoint.x)/self.__delta.x)
+        self.InitialiseCells()
         self.UpdateCellsState(map)
+   
+    def InitialiseCells(self):
+        point = Point3D(self.__minPoint.x + self.__delta.x/2,
+                        self.__minPoint.y + self.__delta.y/2,
+                        0.0)
+        cellID = 0
+        while(point.y <= (self.__maxPoint.y - self.__delta.y/2)):
+            while(point.x <= (self.__maxPoint.x - self.__delta.x/2)):
+                self.__cells.append(Cell(cellID, Point3D(point)))
+                cellID += 1
+                point.x += self.__delta.x
+            point = Point3D(self.__minPoint.x + self.__delta.x/2, point.y + self.__delta.y, 0.0)
         self.CellsConnections()
-
-    def UpdateCellsState(self, map):
-        for cell in self.__cells:
-            for obstacle in map.Obstacles:
-                if cell.IsInsideObstacle(obstacle):
-                    cell.state = 'Obstacle'
-                    break
-                
+            
     def CellsConnections(self):
         for cell in self.__cells:
             if (cell.id == 0):
@@ -127,14 +117,22 @@ class OccupancyGrid():
                 cell.ids.append(cell.id + self.__nCols)
                 cell.ids.append(cell.id + self.__nCols + 1)
 
-
+    def UpdateCellsState(self, map):
+        for cell in self.__cells:
+            for obstacle in map.Obstacles:
+                if cell.IsInsideObstacle(obstacle):
+                    cell.state = 'Obstacle'
+                    break
+                
+    
     def DefineStartGoalCell(self, point, button, screenSize):
         id = 0
-        point = [self.__minPoint[0] + ((self.__maxPoint[0] - self.__minPoint[0])/screenSize[0])*point[0], 
-                 self.__minPoint[1] + ((self.__maxPoint[1] - self.__minPoint[1])/screenSize[1])*(screenSize[1] - point[1])]
+        point = Point3D(self.__minPoint.x + ((self.__maxPoint.x - self.__minPoint.x)/screenSize[0])*point[0], 
+                        self.__minPoint.y + ((self.__maxPoint.y - self.__minPoint.y)/screenSize[1])*(screenSize[1] - point[1]), 
+                        0.0)
         for cell in self.__cells:
-            d = ((point[0] - cell.point[0]) ** 2 + (point[1] - cell.point[1]) ** 2) ** (1/2)
-            if d < (((self.__delta[0]) ** 2 + (self.__delta[1]) ** 2) ** (1/2))*0.5:
+            d = point.Distance(cell.point)
+            if d < (((self.__delta.x) ** 2 + (self.__delta.y) ** 2) ** (1/2))*0.5:
                 id = cell.id
                 break
         if button[0]: self.__startID = id
@@ -149,7 +147,7 @@ class OccupancyGrid():
         goalCell = self.__cells[self.__goalID]
         if startCell.state == 'Obstacle' or goalCell.state == 'Obstacle': return
         for cell in self.__cells: 
-            cell.h = ((goalCell.point[0] - cell.point[0]) ** 2 + (goalCell.point[1] - cell.point[1]) ** 2) ** (1/2)
+            cell.h = cell.point.Distance(goalCell.point)
         tmpCell = startCell
         self.__possible.append(tmpCell)
         while(tmpCell.id != self.__goalID):
@@ -159,7 +157,7 @@ class OccupancyGrid():
             for cellID in tmpCell.ids:
                 possibleNextCell = self.__cells[cellID]
                 if possibleNextCell.state == 'Obstacle': continue
-                g = tmpCell.g + ((tmpCell.point[0] - possibleNextCell.point[0]) ** 2 + (tmpCell.point[1] - possibleNextCell.point[1]) ** 2) ** (1/2)
+                g = tmpCell.g + tmpCell.point.Distance(possibleNextCell.point)
                 if not [cell for cell in self.__possible if cell == possibleNextCell] and \
                    not [cell for cell in self.__visited if cell == possibleNextCell] : 
                     possibleNextCell.idf = tmpCell.id
@@ -183,26 +181,21 @@ class OccupancyGrid():
         # Drawing obstacle cells
         for cell in self.__cells:
             if cell.state == 'Free': continue
-            cell.Draw((0.4,0.4,0.4), self.__delta[0]/2)
-        
+            cell.Draw((0.4,0.4,0.4), self.__delta.x/2)
         # Drawing visited cells
         for cell in self.__visited:
-            cell.Draw((0.7,0.7,1), self.__delta[0]/4)
-        
+            cell.Draw((0.7,0.7,1), self.__delta.x/4)
         # Drawing possible next cells
         for cell in self.__possible:
-            cell.Draw((0.7,1,1), self.__delta[0]/4)
-        
+            cell.Draw((0.7,1,1), self.__delta.x/4)
         #Draw solution path
         glLineWidth(5)
         glBegin(GL_LINE_STRIP)
         glColor3f(0,1,0)
         for cell in self.__solution:
-            glVertex3f(cell.point[0], cell.point[1], 0.0)
+            glVertex3f(cell.point.x, cell.point.y, cell.point.z)
         glEnd()
-        
         # Drawing start cell
-        self.__cells[self.__startID].Draw((0,1,0), self.__delta[0]/4)
-        
+        self.__cells[self.__startID].Draw((0,1,0), self.__delta.x/4)
         # Drawing goal cell
-        self.__cells[self.__goalID].Draw((1,0,0), self.__delta[0]/4)
+        self.__cells[self.__goalID].Draw((1,0,0), self.__delta.x/4)
