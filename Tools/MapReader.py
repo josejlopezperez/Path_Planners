@@ -47,6 +47,20 @@ class MapReader():
         return point
     
     @property
+    def OrthoPoints(self):
+        point1 = self.MinPoint
+        point2 = self.MaxPoint
+        w = point2.x - point1.x
+        h = point2.y - point1.y
+        if w > h:
+            point1.y -= (w - h)/2
+            point2.y += (w - h)/2
+        else:
+            point1.x -= (h - w)/2
+            point2.x += (h - w)/2
+        return point1, point2
+    
+    @property
     def Obstacles(self):
         return self.__obstacles
 

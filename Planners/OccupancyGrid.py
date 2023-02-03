@@ -6,11 +6,13 @@ class Cell():
         self.id = args[0]
         self.point = args[1]
         self.state = 'Free'
-        self.h = 0
-        self.g = 0
-        self.d = 0
-        self.idf = 0
-        self.ids = []
+        self.f = {'h':0.0, 'g':0.0}
+        self.cellFather = 0
+        self.cellSons = []
+    
+    @property
+    def Function(self):
+        return self.f['g'] + self.f['h']
         
     def IsInsideObstacle(self, obstacle):
         hInters = 0
@@ -42,13 +44,12 @@ class OccupancyGrid():
         self.__minPoint = map.MinPoint
         self.__maxPoint = map.MaxPoint
         self.__cells = []
-        self.__startID = 0
-        self.__goalID = 0
+        self.__startCell = Cell(0, Point3D(0,0,0))
+        self.__goalCell = Cell(0, Point3D(0,0,0))
         self.__delta = Point3D(args[1][0], args[1][1], 0.0)
         self.__solution = []
         self.__visited = []
         self.__possible = []
-        self.__nCols = int((self.__maxPoint.x - self.__minPoint.x)/self.__delta.x)
         self.InitialiseCells()
         self.UpdateCellsState(map)
    
@@ -63,59 +64,62 @@ class OccupancyGrid():
                 cellID += 1
                 point.x += self.__delta.x
             point = Point3D(self.__minPoint.x + self.__delta.x/2, point.y + self.__delta.y, 0.0)
+        self.__startCell = self.__cells[0]
+        self.__goalCell = self.__cells[0]
         self.CellsConnections()
             
     def CellsConnections(self):
+        nCols = int((self.__maxPoint.x - self.__minPoint.x)/self.__delta.x)
         for cell in self.__cells:
             if (cell.id == 0):
-                cell.ids.append(cell.id + 1)
-                cell.ids.append(cell.id + self.__nCols)
-                cell.ids.append(cell.id + self.__nCols + 1)
-            elif (cell.id == self.__nCols - 1):
-                cell.ids.append(cell.id - 1)
-                cell.ids.append(cell.id + self.__nCols - 1)
-                cell.ids.append(cell.id + self.__nCols)
-            elif (cell.id == len(self.__cells) - self.__nCols):
-                cell.ids.append(cell.id - self.__nCols)
-                cell.ids.append(cell.id - self.__nCols + 1)
-                cell.ids.append(cell.id + 1)
+                cell.cellSons.append(self.__cells[cell.id + 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols])
+                cell.cellSons.append(self.__cells[cell.id + nCols + 1])
+            elif (cell.id == nCols - 1):
+                cell.cellSons.append(self.__cells[cell.id - 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols])
+            elif (cell.id == len(self.__cells) - nCols):
+                cell.cellSons.append(self.__cells[cell.id - nCols])
+                cell.cellSons.append(self.__cells[cell.id - nCols + 1])
+                cell.cellSons.append(self.__cells[cell.id + 1])
             elif (cell.id == len(self.__cells) - 1):
-                cell.ids.append(cell.id - self.__nCols - 1)
-                cell.ids.append(cell.id - self.__nCols)
-                cell.ids.append(cell.id - 1)
-            elif not (cell.id % self.__nCols):
-                cell.ids.append(cell.id - self.__nCols)
-                cell.ids.append(cell.id - self.__nCols + 1)
-                cell.ids.append(cell.id + 1)
-                cell.ids.append(cell.id + self.__nCols)
-                cell.ids.append(cell.id + self.__nCols + 1)
-            elif not ((cell.id + 1) % (self.__nCols)):
-                cell.ids.append(cell.id - self.__nCols - 1)
-                cell.ids.append(cell.id - self.__nCols)
-                cell.ids.append(cell.id - 1)
-                cell.ids.append(cell.id + self.__nCols - 1)
-                cell.ids.append(cell.id + self.__nCols)
-            elif (cell.id < self.__nCols):
-                cell.ids.append(cell.id - 1)
-                cell.ids.append(cell.id + 1)
-                cell.ids.append(cell.id + self.__nCols - 1)
-                cell.ids.append(cell.id + self.__nCols)
-                cell.ids.append(cell.id + self.__nCols + 1)
-            elif (cell.id > len(self.__cells) - self.__nCols):
-                cell.ids.append(cell.id - self.__nCols - 1)
-                cell.ids.append(cell.id - self.__nCols)
-                cell.ids.append(cell.id - self.__nCols + 1)
-                cell.ids.append(cell.id - 1)
-                cell.ids.append(cell.id + 1)
+                cell.cellSons.append(self.__cells[cell.id - nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id - nCols])
+                cell.cellSons.append(self.__cells[cell.id - 1])
+            elif not (cell.id % nCols):
+                cell.cellSons.append(self.__cells[cell.id - nCols])
+                cell.cellSons.append(self.__cells[cell.id - nCols + 1])
+                cell.cellSons.append(self.__cells[cell.id + 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols])
+                cell.cellSons.append(self.__cells[cell.id + nCols + 1])
+            elif not ((cell.id + 1) % (nCols)):
+                cell.cellSons.append(self.__cells[cell.id - nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id - nCols])
+                cell.cellSons.append(self.__cells[cell.id - 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols])
+            elif (cell.id < nCols):
+                cell.cellSons.append(self.__cells[cell.id - 1])
+                cell.cellSons.append(self.__cells[cell.id + 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols])
+                cell.cellSons.append(self.__cells[cell.id + nCols + 1])
+            elif (cell.id > len(self.__cells) - nCols):
+                cell.cellSons.append(self.__cells[cell.id - nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id - nCols])
+                cell.cellSons.append(self.__cells[cell.id - nCols + 1])
+                cell.cellSons.append(self.__cells[cell.id - 1])
+                cell.cellSons.append(self.__cells[cell.id + 1])
             else:
-                cell.ids.append(cell.id - self.__nCols - 1)
-                cell.ids.append(cell.id - self.__nCols)
-                cell.ids.append(cell.id - self.__nCols + 1)
-                cell.ids.append(cell.id - 1)
-                cell.ids.append(cell.id + 1)
-                cell.ids.append(cell.id + self.__nCols - 1)
-                cell.ids.append(cell.id + self.__nCols)
-                cell.ids.append(cell.id + self.__nCols + 1)
+                cell.cellSons.append(self.__cells[cell.id - nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id - nCols])
+                cell.cellSons.append(self.__cells[cell.id - nCols + 1])
+                cell.cellSons.append(self.__cells[cell.id - 1])
+                cell.cellSons.append(self.__cells[cell.id + 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols - 1])
+                cell.cellSons.append(self.__cells[cell.id + nCols])
+                cell.cellSons.append(self.__cells[cell.id + nCols + 1])
 
     def UpdateCellsState(self, map):
         for cell in self.__cells:
@@ -125,77 +129,57 @@ class OccupancyGrid():
                     break
                 
     
-    def DefineStartGoalCell(self, point, button, screenSize):
-        id = 0
-        point = Point3D(self.__minPoint.x + ((self.__maxPoint.x - self.__minPoint.x)/screenSize[0])*point[0], 
-                        self.__minPoint.y + ((self.__maxPoint.y - self.__minPoint.y)/screenSize[1])*(screenSize[1] - point[1]), 
-                        0.0)
-        for cell in self.__cells:
-            d = point.Distance(cell.point)
-            if d < (((self.__delta.x) ** 2 + (self.__delta.y) ** 2) ** (1/2))*0.5:
-                id = cell.id
-                break
-        if button[0]: self.__startID = id
-        elif button[2]: self.__goalID = id
+    def DefineStartGoalCell(self, point, button):
+        id = sorted(self.__cells, key=lambda cell: point.Distance(cell.point))[0].id
+        if button[0]: self.__startCell = self.__cells[id]
+        elif button[2]: self.__goalCell = self.__cells[id]
         self.AStarAlgorithm()
 
     def AStarAlgorithm(self):
         self.__possible = []
         self.__visited = []
         self.__solution = []
-        startCell = self.__cells[self.__startID]
-        goalCell = self.__cells[self.__goalID]
-        if startCell.state == 'Obstacle' or goalCell.state == 'Obstacle': return
+        if self.__startCell.state == 'Obstacle' or self.__goalCell.state == 'Obstacle': return
         for cell in self.__cells: 
-            cell.h = cell.point.Distance(goalCell.point)
-        tmpCell = startCell
+            cell.f['h'] = cell.point.Distance(self.__goalCell.point)
+        tmpCell = self.__startCell
         self.__possible.append(tmpCell)
-        while(tmpCell.id != self.__goalID):
+        while(tmpCell != self.__goalCell):
             if not self.__possible: break
             tmpCell = self.__possible.pop(0)
             self.__visited.append(tmpCell)
-            for cellID in tmpCell.ids:
-                possibleNextCell = self.__cells[cellID]
-                if possibleNextCell.state == 'Obstacle': continue
-                g = tmpCell.g + tmpCell.point.Distance(possibleNextCell.point)
-                if not [cell for cell in self.__possible if cell == possibleNextCell] and \
-                   not [cell for cell in self.__visited if cell == possibleNextCell] : 
-                    possibleNextCell.idf = tmpCell.id
-                    possibleNextCell.g = g
-                    possibleNextCell.d = possibleNextCell.g + possibleNextCell.h
-                    self.__possible.append(possibleNextCell)
-                    self.__possible.sort(key=lambda cell: cell.d)
-                elif(g <= possibleNextCell.g):
-                    possibleNextCell.idf = tmpCell.id
-                    possibleNextCell.g = g
-                    possibleNextCell.d = possibleNextCell.g + possibleNextCell.h
-        if(tmpCell.id == self.__goalID):
-            cell = self.__visited[-1] if self.__startID != self.__goalID else goalCell
+            for nextCell in tmpCell.cellSons:
+                if nextCell.state == 'Obstacle': continue
+                g = tmpCell.f['g'] + tmpCell.point.Distance(nextCell.point)
+                if not (nextCell in self.__possible or nextCell in self.__visited): 
+                    nextCell.cellFather = tmpCell
+                    nextCell.f['g'] = g
+                    self.__possible.append(nextCell)
+                    self.__possible.sort(key=lambda cell: cell.Function)
+                elif(g < nextCell.f['g']):
+                    nextCell.cellFather = tmpCell
+                    nextCell.f['g'] = g
+        if(tmpCell == self.__goalCell):
+            cell = self.__visited[-1] if self.__startCell != self.__goalCell else self.__goalCell
             self.__solution.append(cell)
-            while(cell.id != startCell.id):
-                cell = self.__cells[cell.idf]
+            while(cell != self.__startCell):
+                cell = cell.cellFather
                 self.__solution.append(cell)
 
 
     def Draw(self):
-        # Drawing obstacle cells
         for cell in self.__cells:
             if cell.state == 'Free': continue
             cell.Draw((0.4,0.4,0.4), self.__delta.x/2)
-        # Drawing visited cells
         for cell in self.__visited:
             cell.Draw((0.7,0.7,1), self.__delta.x/4)
-        # Drawing possible next cells
         for cell in self.__possible:
             cell.Draw((0.7,1,1), self.__delta.x/4)
-        #Draw solution path
         glLineWidth(5)
         glBegin(GL_LINE_STRIP)
         glColor3f(0,1,0)
         for cell in self.__solution:
             glVertex3f(cell.point.x, cell.point.y, cell.point.z)
         glEnd()
-        # Drawing start cell
-        self.__cells[self.__startID].Draw((0,1,0), self.__delta.x/4)
-        # Drawing goal cell
-        self.__cells[self.__goalID].Draw((1,0,0), self.__delta.x/4)
+        self.__startCell.Draw((0,1,0), self.__delta.x/4)
+        self.__goalCell.Draw((1,0,0), self.__delta.x/4)
