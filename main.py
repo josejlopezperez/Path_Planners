@@ -2,12 +2,14 @@ import pygame
 from pygame.locals import *
 from OpenGL.GL import *
 from Planners.OccupancyGrid import OccupancyGrid
+from Planners.PRM import PRM
 from Tools.MapReader import MapReader
 from Tools.Points import Point3D
 
 
 map = MapReader()
-occGrid = OccupancyGrid(map, (0.5, 0.5))
+# occGrid = OccupancyGrid(map, (0.5, 0.5))
+prm = PRM(map)
 
 
 def CheckEvents():
@@ -19,11 +21,14 @@ def CheckEvents():
         MouseEvents(event)
 
 def KeyboardEvents(event):
-    global map, occGrid
+    global map
+    # global occGrid
+    global prm
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
             map = MapReader(map.mapID + 1) if event.key == pygame.K_RIGHT else MapReader(map.mapID - 1)
-            occGrid = OccupancyGrid(map, (0.5, 0.5))
+            # occGrid = OccupancyGrid(map, (0.5, 0.5))
+            prm = PRM(map)
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
             glOrtho(map.OrthoPoints[0].x, map.OrthoPoints[1].x, map.OrthoPoints[0].y, map.OrthoPoints[1].y, -1, 1)
@@ -44,7 +49,8 @@ def MouseEvents(event):
         glPoint = Point3D(minPoint.x + ((maxPoint.x - minPoint.x)/screenSize[0])*mousePosition[0], 
                         minPoint.y + ((maxPoint.y - minPoint.y)/screenSize[1])*(screenSize[1] - mousePosition[1]), 
                         0.0)
-        occGrid.DefineStartGoalCell(glPoint, buttonsPressed)
+        # occGrid.DefineStartGoalCell(glPoint, buttonsPressed)
+        prm.DefineStartGoalNodes(glPoint, buttonsPressed)
 
 
 if __name__ == '__main__':
@@ -60,7 +66,8 @@ if __name__ == '__main__':
     while True:
         CheckEvents()
         map.Draw()
-        occGrid.Draw()
+        # occGrid.Draw()
+        prm.Draw()
         pygame.display.flip()
         pygame.time.wait(1)
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
