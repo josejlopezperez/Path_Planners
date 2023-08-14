@@ -19,6 +19,9 @@ class Point3D():
         distance = ((self.x - point.x) ** 2 + (self.y - point.y) ** 2 + (self.z - point.z) ** 2) ** (1/2)
         return distance
     
+    def __truediv__(self, other):
+        return Point3D(self.x/other, self.y/other, self.z/other)
+    
 def OnSegment(p, q, r):
     if ( (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and 
            (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))):

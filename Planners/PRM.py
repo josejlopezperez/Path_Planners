@@ -96,13 +96,13 @@ class PRM():
             
     def NodesConnections(self):
         nodesList = [self.__startNode] + self.__nodes + [self.__goalNode]
-        minDistance = (self.__maxPoint.x - self.__minPoint.x)/10
+        minDistance = (self.__maxPoint.x - self.__minPoint.x)/5
         for node in nodesList:
             node.nodeSons = [nodeSon for nodeSon in nodesList if nodeSon != node and nodeSon.point.Distance(node.point) < minDistance]
             node.CheckConnections(self.__map)
 
  
-    def DefineStartGoalNodes(self, point, button):
+    def DefineStartGoal(self, point, button):
         if button[0]: 
             self.__startNode.point = point
         elif button[2]: 

@@ -71,16 +71,19 @@ class MapReader():
         return self.__obstacles
 
 
-    def Draw(self):
+    def DrawBorder(self):
         glBegin(GL_QUADS)
         glColor3f(1,1,1)
         for vertex in self.__border:
             glVertex3fv(vertex.ToVector)
         glEnd()
+
+
+    def DrawObstacles(self):
         for obstacle in self.__obstacles:
             glLineWidth(3)
             glBegin(GL_LINE_LOOP)
-            glColor3f(0.4,0.4,0.4)
+            glColor3f(0.0,0.0,0.0)
             for vertex in obstacle:
                 glVertex3fv(vertex.ToVector)
             glEnd()
