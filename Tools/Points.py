@@ -14,6 +14,9 @@ class Point3D():
     @property
     def ToVector(self):
         return [self.x, self.y, self.z]
+    
+    def __eq__(self, point):
+        return self.x == point.x and self.y == point.y and self.z == point.z
             
     def Distance(self, point):
         distance = ((self.x - point.x) ** 2 + (self.y - point.y) ** 2 + (self.z - point.z) ** 2) ** (1/2)

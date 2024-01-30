@@ -48,7 +48,7 @@ class Cell():
         glVertex3f(self.point.x + delta.x, self.point.y - delta.y, 0.0)
         glEnd()
 
-class OccupancyGrid():
+class OG():
     def __init__(self, *args):
         map = args[0]
         self.__delta = Point3D(args[1][0], args[1][1], 0.0)
