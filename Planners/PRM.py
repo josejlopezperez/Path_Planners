@@ -11,16 +11,19 @@ class Node():
         self.f = {'h':0.0, 'g':0.0}
         self.nodeFather = 0
         self.nodeSons = []
-    
+
     @property
     def Function(self):
         return self.f['g'] + self.f['h']
-    
-    
+
     def CheckConnections(self, map):
         nodeSons = []
         point1 = self.point
         for nodeSon in self.nodeSons:
+            if nodeSon.id < self.id:
+                if self.id in [nodeSonSons.id for nodeSonSons in nodeSon.nodeSons]:
+                    nodeSons.append(nodeSon)
+                    continue
             flag = False
             point2 = nodeSon.point
             for obstacle in map.Obstacles:
@@ -34,7 +37,6 @@ class Node():
             if not flag: nodeSons.append(nodeSon)
         self.nodeSons = nodeSons
 
-        
     def IsInsideObstacle(self, obstacle):
         hInters = 0
         point1 = Point3D(min([vertex.x for vertex in obstacle]), min([vertex.y for vertex in obstacle]), 0.0)
@@ -50,7 +52,6 @@ class Node():
                 if (min([point1.x, point2.x]) < x <= max([point1.x, point2.x])) and x > self.point.x: hInters += 1
         return (hInters % 2) != 0
 
-    
     def Draw(self, color):
         glBegin(GL_POLYGON)
         glColor3fv(color)
@@ -93,15 +94,14 @@ class PRM():
         self.__startNode.point = self.__nodes[0].point
         self.__goalNode.point = self.__nodes[0].point
         self.NodesConnections()
-            
+
     def NodesConnections(self):
         nodesList = [self.__startNode] + self.__nodes + [self.__goalNode]
-        minDistance = (self.__maxPoint.x - self.__minPoint.x)/5
+        minDistance = (self.__maxPoint.x - self.__minPoint.x)/8.5
         for node in nodesList:
             node.nodeSons = [nodeSon for nodeSon in nodesList if nodeSon != node and nodeSon.point.Distance(node.point) < minDistance]
             node.CheckConnections(self.__map)
 
- 
     def DefineStartGoal(self, point, button):
         if button[0]: 
             self.__startNode.point = point
@@ -141,7 +141,6 @@ class PRM():
                 node = node.nodeFather
                 self.__solution.append(node)
 
-
     def Draw(self):
         for node in self.__nodes:
             if node.state == 'Obstacle': continue
@@ -149,7 +148,7 @@ class PRM():
             for nodeSon in node.nodeSons:
                 glLineWidth(0.5)
                 glBegin(GL_LINE_STRIP)
-                glColor3f(0.4,0.4,0.4)
+                glColor4f(0.4,0.4,0.4,0.1)
                 glVertex3f(nodeSon.point.x, nodeSon.point.y, nodeSon.point.z)
                 glVertex3f(node.point.x, node.point.y, node.point.z)
                 glEnd()
